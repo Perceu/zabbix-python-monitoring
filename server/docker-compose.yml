@@ -1,0 +1,61 @@
+version: '3'
+
+services:
+  db:
+    image: postgres
+    container_name: postgres_zabbix
+    networks:
+      - zabbix
+    environment:
+      - POSTGRES_USER=pgzabix
+      - POSTGRES_PASSWORD=p@ssw0rd
+
+  zabbix-server:
+    image: zabbix/zabbix-server-pgsql
+    container_name: zabbix-server
+    depends_on:
+      - db
+    networks:
+      - zabbix
+    ports:
+      - "10051:10051"      
+    environment:
+      - POSTGRES_USER=pgzabix
+      - POSTGRES_PASSWORD=p@ssw0rd
+      - DB_SERVER_HOST=db
+
+  zabbix-agent:
+    image: zabbix/zabbix-agent
+    container_name: zabbix-agent
+    depends_on:
+      - db
+      - zabbix-server
+    networks:
+      - zabbix
+    ports:
+      - "10050:10050"
+    environment:
+      - ZBX_HOSTNAME=server-agent
+      - ZBX_METADATA=Linux
+      - ZBX_HOSTNAMEITEM=system.hostname
+      - ZBX_SERVER_HOST=zabbix-server
+
+  zabbix-dashboard:
+    image: zabbix/zabbix-web-nginx-pgsql
+    container_name: zabbix-dash
+    depends_on:
+      - db
+      - zabbix-server
+    networks:
+      - zabbix
+    ports:
+      - "8080:8080"
+    environment:
+      - POSTGRES_USER=pgzabix
+      - POSTGRES_PASSWORD=p@ssw0rd
+      - DB_SERVER_HOST=db
+      - ZBX_SERVER_HOST=zabbix-server
+      - PHP_TZ=america/sao_paulo
+
+networks:
+  zabbix:
